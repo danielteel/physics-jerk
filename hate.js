@@ -11,34 +11,45 @@ let speed = {
     maxAccel: 6
 }
 
-console.log(maxDistanceCanTravelAndComeToStop(0, 1, 5, .25));
+console.log(maxDistanceCanTravelAndComeToStop(6, 1, 5, 10));
 
 
-function maxDistanceCanTravelAndComeToStop(startAccel, accelRate, maxAccel, tickTime){
+function maxDistanceCanTravelAndComeToStop(startSpeed, accel, maxSpeed, tickTime){
+    //returns null if we cant come to a stop in alloted tickTime
 
     let distanceTravelled=0;
 
-    if (startAccel<0){
-        const timeToSpeedInitialUp = Math.abs(startAccel)/accelRate;
-        distanceTravelled=startAccel/2*timeToSpeedInitialUp;
+    if (startSpeed<0){
+        const timeToSpeedInitialUp = Math.abs(startSpeed)/accel;
+        if (timeToSpeedInitialUp>tickTime) return null;
+        distanceTravelled=startSpeed/2*timeToSpeedInitialUp;
         tickTime-=timeToSpeedInitialUp;
-        startAccel=0;
+        startSpeed=0;
     }
 
-    const timeToSlowInitialDown = startAccel/accelRate;
+    const timeToSlowInitialDown = startSpeed/accel;
     if (timeToSlowInitialDown>tickTime) return null;
 
-    const timeToRise = maxAccel/accelRate - startAccel/accelRate;
-    const timeToFall = maxAccel/accelRate;
+    if (startSpeed>maxSpeed){
+        const timeToGetToMaxSpeed = (startSpeed-maxSpeed)/accel;
+        tickTime-=timeToGetToMaxSpeed;
+        distanceTravelled+=(startSpeed+maxSpeed)/2*timeToGetToMaxSpeed;
+        startSpeed=maxSpeed;
+    }
+
+    const timeToRise = maxSpeed/accel - startSpeed/accel;
+    const timeToFall = maxSpeed/accel;
 
     if (timeToRise+timeToFall < tickTime){
-        distanceTravelled+=(maxAccel + startAccel)/2*timeToRise;
-        distanceTravelled+=(maxAccel/2)*timeToFall;
+        distanceTravelled+=(maxSpeed + startSpeed)/2*timeToRise;
+        distanceTravelled+=(maxSpeed/2)*timeToFall;
 
-        distanceTravelled+=(tickTime-timeToRise-timeToFall)*maxAccel;
-    }else{
-        const maxAccelChange = tickTime*accelRate;
-        distanceTravelled+=maxAccelChange/4*tickTime;
+        distanceTravelled+=(tickTime-timeToRise-timeToFall)*maxSpeed;
+    } else if (timeToRise+timeToFall > tickTime){
+        return null;
+    } else {
+        const maxSpeedChange = tickTime*accel;
+        distanceTravelled+=maxSpeedChange/4*tickTime;
     }
 
     return distanceTravelled;
