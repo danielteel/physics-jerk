@@ -1,4 +1,4 @@
-class JerkValue {
+export class JerkValue {
     constructor(startValue, startTime, accelRate, maxAccel){
         this.startValue=startValue;
         this.startTime=startTime;
