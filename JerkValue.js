@@ -8,7 +8,14 @@ export class JerkValue {
         this.target=startValue;
     }
 
-    newTarget(currentTime, newTarget){
+    setMaxAccel(newMaxAccel){
+        this.maxAccel=newMaxAccel;
+    }
+    setAccelRate(newAccelRate){
+        this.accelRate=newAccelRate;
+    }
+
+    setTarget(currentTime, newTarget){
         const newStartValue = this.getCurrentValue(currentTime);
         const newInitialAccel = this.getCurrentAccel(currentTime);
         this.startTime=currentTime;
@@ -27,8 +34,76 @@ export class JerkValue {
 }
 
 export function accelerationAtTime(time, initialAccel, accelRate, maxAccel, target){
-    
+    const totalTime = howLongToGetToTarget(target, accelRate, maxAccel, initialAccel);
+    if (time>=totalTime) return 0;
+
+    if (initialAccel<0){
+        return -accelerationAtTime(time, 0-initialAccel, accelRate, maxAccel, -target);
+    }
+
+    const distanceToZeroFromInitial = initialAccel**2/accelRate/2;
+
+    const willOvershoot = distanceToZeroFromInitial > target;
+
+    if (willOvershoot===false){
+        if (target===distanceToZeroFromInitial){
+            return initialAccel-time*accelRate;
+        }
+        const timeToMid = ((0-initialAccel/accelRate)+totalTime)/2;
+        const timeToMax = (maxAccel-initialAccel)/accelRate;
+
+        if (timeToMid<timeToMax){
+            if (time<timeToMid){
+                return (accelRate*(time+(initialAccel/accelRate))**2)/2 - (accelRate*(initialAccel/accelRate)**2)/2;
+            }
+            return target-(accelRate*(totalTime-time)**2)/2;
+        }else{
+            const timeToZeroFromMax = maxAccel/accelRate;
+
+            if (time<Math.abs(timeToMax)){
+                if (timeToMax<=0){
+                    return (accelRate*(time-(initialAccel/accelRate))**2)/-2 + (accelRate*(initialAccel/accelRate)**2)/2;
+                }
+                return (accelRate*(time+(initialAccel/accelRate))**2)/2 - (accelRate*(initialAccel/accelRate)**2)/2;
+            }else if (time<=totalTime-timeToZeroFromMax){
+                if (timeToMax<=0){
+                    const base = (accelRate*(-timeToMax-(initialAccel/accelRate))**2)/-2 + (accelRate*(initialAccel/accelRate)**2)/2;
+                    return base+maxAccel*(time+timeToMax);
+                }else{
+                    const base = (accelRate*(timeToMax+(initialAccel/accelRate))**2)/2 - (accelRate*(initialAccel/accelRate)**2)/2;
+                    return base+maxAccel*(time-timeToMax);
+                }
+            }else if (time<=totalTime){
+                return target+accelRate*(time-totalTime)**2/-2
+            }else{
+                return target;
+            }
+        }
+
+    }else{
+        const timeToZero = initialAccel/accelRate;
+        const fallTime = totalTime-timeToZero;
+        const needsLimit = fallTime/2*accelRate > maxAccel;
+
+        if (needsLimit===false){
+            if (time <= timeToZero+fallTime/2){
+                return (accelRate*(time-(initialAccel/accelRate))**2)/-2 + (accelRate*(initialAccel/accelRate)**2)/2;
+            }else if (time<=totalTime){
+                return (accelRate*(totalTime-time)**2/2)+target;
+            }
+            return target;
+        }else{
+            if (time<=timeToZero+maxAccel/accelRate){
+                return (accelRate*(time-(initialAccel/accelRate))**2)/-2 + (accelRate*(initialAccel/accelRate)**2)/2;
+            }else if (time<=totalTime-maxAccel/accelRate){
+                const constStartTme = timeToZero+maxAccel/accelRate;
+                return (accelRate*(constStartTme-(initialAccel/accelRate))**2)/-2 + (accelRate*(initialAccel/accelRate)**2)/2-(time-constStartTme)*maxAccel;
+            }
+            return (accelRate*(totalTime-time)**2/2)+target;
+        }
+    }
 }
+
 
 export function speedAtTime(time, initialAccel, accelRate, maxAccel, target){
     if (initialAccel<0){
